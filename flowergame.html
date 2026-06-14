@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Flower Bouquet Garden</title>
+
+<style>
+
+body{
+    font-family:Arial;
+    background:#cfeccf;
+    margin:0;
+    text-align:center;
+}
+
+#top{
+    background:white;
+    padding:10px;
+    box-shadow:0 2px 5px #999;
+}
+
+#wrap{
+    display:flex;
+    gap:15px;
+    justify-content:center;
+    margin-top:15px;
+}
+
+.side,
+.main{
+    background:white;
+    border-radius:10px;
+    padding:12px;
+    box-shadow:0 2px 5px #999;
+}
+
+.side{
+    width:230px;
+    text-align:left;
+}
+
+#garden{
+    display:grid;
+    grid-template-columns:repeat(5,110px);
+    gap:8px;
+    justify-content:center;
+}
+
+.plot{
+    width:110px;
+    height:110px;
+    background:#8b5a2b;
+    border-radius:10px;
+    position:relative;
+    font-size:38px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+}
+
+.info{
+    position:absolute;
+    bottom:2px;
+    color:white;
+    font-size:10px;
+}
+
+.sel{
+    background:gold;
+}
+
+button{
+    margin:2px;
+    padding:6px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="top">
+
+<h2>🌸 Flower Bouquet Garden 🌸</h2>
+
+💰 $<span id="money">100</span>
+
+<br><br>
+
+Selected:
+<span id="selected">Tulip</span>
+
+<br><br>
+
+<div id="seeds"></div>
+
+<button onclick="tool='plant'">
+🌱 Plant
+</button>
+
+<button onclick="tool='water'">
+💧 Water
+</button>
+
+<button onclick="tool='sun'">
+☀️ Sun
+</button>
+
+<button onclick="tool='harvest'">
+✂️ Harvest
+</button>
+
+</div>
+
+<div id="wrap">
+
+<div class="side">
+
+<h3>Market</h3>
+
+<div id="market"></div>
+
+<button onclick="sellAll()">
+Sell All
+</button>
+
+</div>
+
+<div class="main">
+
+<h3>
+Level
+<span id="lvl">1</span>
+</h3>
+
+<div id="objective"></div>
+
+<br>
+
+<div id="garden"></div>
+
+<h3>Basket</h3>
+
+<div id="basket"></div>
+
+<div id="msg"></div>
+
+</div>
+
+<div class="side">
+
+<h3>Flower Guide</h3>
+
+<div id="guide"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const flowers = {
+
+Tulip:{
+    e:"🌷",
+    c:5,
+    v:12,
+    w:1,
+    s:1
+},
+
+Daisy:{
+    e:"🌼",
+    c:8,
+    v:18,
+    w:2,
+    s:1
+},
+
+Rose:{
+    e:"🌹",
+    c:15,
+    v:35,
+    w:3,
+    s:3
+},
+
+Sunflower:{
+    e:"🌻",
+    c:25,
+    v:55,
+    w:2,
+    s:5
+},
+
+Lavender:{
+    e:"🪻",
+    c:40,
+    v:90,
+    w:1,
+    s:4
+},
+
+Hibiscus:{
+    e:"🌺",
+    c:60,
+    v:120,
+    w:5,
+    s:3
+},
+
+CherryBlossom:{
+    e:"🌸",
+    c:75,
+    v:150,
+    w:3,
+    s:4
+},
+
+Lotus:{
+    e:"🪷",
+    c:90,
+    v:180,
+    w:6,
+    s:2
+},
+
+Marigold:{
+    e:"🏵️",
+    c:110,
+    v:220,
+    w:2,
+    s:4
+},
+
+Orchid:{
+    e:"💮",
+    c:130,
+    v:260,
+    w:4,
+    s:5
+}
+
+};
+
+const levels = [
+
+["Tulip","Daisy"],
+["Daisy","Rose"],
+["Rose","Sunflower"],
+["Sunflower","Lavender"],
+["Lavender","Hibiscus"],
+["Hibiscus","CherryBlossom"],
+["CherryBlossom","Lotus"],
+["Lotus","Marigold"],
+["Marigold","Orchid"],
+["Orchid",null]
+
+];
+
+let money = 100;
+
+let tool = "plant";
+
+let selectedSeed = "Tulip";
+
+let level = 0;
+
+let unlocked = ["Tulip"];
+
+let inv = {};
+
+const plots = [];
+
+for(let i=0;i<25;i++){
+
+    let d =
+    document.createElement("div");
+
+    d.className = "plot";
+
+    d.onclick = () =>
+    clickPlot(i);
+
+    garden.appendChild(d);
+
+    plots.push({
+
+        f:null,
+        w:0,
+        s:0,
+        st:0,
+        el:d
+
+    });
+
+}
+function clickPlot(i){
+
+    let p = plots[i];
+
+    if(tool=="plant"){
+
+        if(p.f) return;
+
+        let f = flowers[selectedSeed];
+
+        if(money < f.c){
+
+            message(
+            "Not enough money!"
+            );
+
+            return;
+        }
+
+        money -= f.c;
+
+        p.f = selectedSeed;
+        p.w = 0;
+        p.s = 0;
+        p.st = 1;
+    }
+
+    if(tool=="water" && p.f){
+
+        p.w++;
+
+        grow(p);
+    }
+
+    if(tool=="sun" && p.f){
+
+        p.s++;
+
+        grow(p);
+    }
+
+    if(tool=="harvest" && p.st==4){
+
+        inv[p.f] =
+        (inv[p.f]||0)+1;
+
+        p.f = null;
+        p.w = 0;
+        p.s = 0;
+        p.st = 0;
+
+        checkLevel();
+    }
+
+    render();
+}
+
+function grow(p){
+
+    let f =
+    flowers[p.f];
+
+    let progress =
+
+    (p.w + p.s) /
+
+    (f.w + f.s);
+
+    if(
+        p.w >= f.w &&
+        p.s >= f.s
+    ){
+
+        p.st = 4;
+    }
+
+    else if(
+        progress >= 0.66
+    ){
+
+        p.st = 3;
+    }
+
+    else if(
+        progress >= 0.33
+    ){
+
+        p.st = 2;
+    }
+
+    else{
+
+        p.st = 1;
+    }
+}
+
+function render(){
+
+    updateMoney();
+
+    renderSeeds();
+
+    renderGuide();
+
+    renderBasket();
+
+    renderMarket();
+
+    renderObjective();
+
+    plots.forEach(p=>{
+
+        if(!p.f){
+
+            p.el.innerHTML = "";
+
+            return;
+        }
+
+        let icon = "🌱";
+
+        if(p.st==2)
+            icon = "🌿";
+
+        if(p.st==3)
+            icon = "🌸";
+
+        if(p.st==4)
+            icon =
+            flowers[p.f].e;
+
+        p.el.innerHTML =
+
+        icon +
+
+        `<div class="info">
+
+        ${p.w}/${flowers[p.f].w}💧
+
+        ${p.s}/${flowers[p.f].s}☀️
+
+        </div>`;
+    });
+}
+
+function renderSeeds(){
+
+    seeds.innerHTML = "";
+
+    unlocked.forEach(name=>{
+
+        let btn =
+        document.createElement(
+        "button");
+
+        btn.textContent =
+
+        `${flowers[name].e}
+        ${name}
+        $${flowers[name].c}`;
+
+        if(
+        name ==
+        selectedSeed
+        ){
+            btn.className =
+            "sel";
+        }
+
+        btn.onclick = ()=>{
+
+            selectedSeed =
+            name;
+
+            selected.textContent =
+            name;
+
+            render();
+        };
+
+        seeds.appendChild(btn);
+    });
+}
+
+function renderGuide(){
+
+    guide.innerHTML = "";
+
+    unlocked.forEach(name=>{
+
+        let f =
+        flowers[name];
+
+        guide.innerHTML +=
+
+        `<div>
+
+        <strong>
+        ${f.e} ${name}
+        </strong>
+
+        <br>
+
+        Water:
+        ${f.w} 💧
+
+        <br>
+
+        Sun:
+        ${f.s} ☀️
+
+        <br>
+
+        Sell:
+        $${f.v}
+
+        <hr>
+
+        </div>`;
+    });
+}
+
+function renderBasket(){
+
+    basket.innerHTML = "";
+
+    let hasFlowers =
+    false;
+
+    for(let k in inv){
+
+        if(inv[k] > 0){
+
+            hasFlowers =
+            true;
+
+            basket.innerHTML +=
+
+            `${flowers[k].e}
+            ${k}:
+            ${inv[k]}
+
+            <br>`;
+        }
+    }
+
+    if(!hasFlowers){
+
+        basket.innerHTML =
+        "No flowers yet";
+    }
+}
+
+function renderMarket(){
+
+    market.innerHTML = "";
+
+    let hasFlowers =
+    false;
+
+    for(let k in inv){
+
+        if(inv[k] > 0){
+
+            hasFlowers =
+            true;
+
+            market.innerHTML +=
+
+            `${flowers[k].e}
+            ${k}
+
+            x${inv[k]}
+
+            ($${inv[k] *
+            flowers[k].v})
+
+            <br>`;
+        }
+    }
+
+    if(!hasFlowers){
+
+        market.innerHTML =
+        "Nothing to sell";
+    }
+}
+
+function renderObjective(){
+
+    lvl.textContent =
+    level + 1;
+
+    let target =
+
+    levels[
+    Math.min(
+    level,
+    levels.length-1
+    )][0];
+
+    objective.textContent =
+
+    `Create Bouquet:
+    2 ${target}`;
+}
+
+function updateMoney(){
+
+    document.getElementById(
+    "money"
+    ).textContent =
+    money;
+}
+
+function checkLevel(){
+
+    let target =
+
+    levels[level][0];
+
+    if(
+        (inv[target]||0)
+        < 2
+    ){
+        return;
+    }
+
+    inv[target] -= 2;
+
+    money +=
+    50 * (level + 1);
+
+    let unlock =
+
+    levels[level][1];
+
+    if(
+        unlock &&
+        !unlocked.includes(
+        unlock
+        )
+    ){
+
+        unlocked.push(
+        unlock
+        );
+
+        message(
+        `Level Complete!
+        Unlocked
+        ${unlock}!`
+        );
+    }
+
+    else if(
+        level ==
+        levels.length-1
+    ){
+
+        message(
+        "🏆 You beat the game!"
+        );
+    }
+
+    level++;
+
+    render();
+}
+
+function sellAll(){
+
+    let total = 0;
+
+    for(let k in inv){
+
+        total +=
+
+        inv[k] *
+
+        flowers[k].v;
+
+        inv[k] = 0;
+    }
+
+    money += total;
+
+    message(
+    `Sold flowers
+    for $${total}!`
+    );
+
+    render();
+}
+
+function message(text){
+
+    document.getElementById(
+    "msg"
+    ).textContent =
+    text;
+}
+
+render();
+
+</script>
+
+</body>
+</html>
